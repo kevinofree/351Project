@@ -74,13 +74,16 @@ void send(const char* fileName)
 {
 	/* Open the file for reading */
 	FILE* fp = fopen(fileName, "r");
+	int size = sizeof(message) - sizeof(long);
 	
 
 	/* A buffer to store message we will send to the receiver. */
 	message sndMsg; 
+	sndMsg.mtype = SENDER_DATA_TYPE;//not sure if needed
 	
 	/* A buffer to store message received from the receiver. */
 	message rcvMsg;
+	rcvMsg.mtype = RECV_DONE_TYPE;//not sure if needed
 	
 	/* Was the file open? */
 	if(!fp)
@@ -106,10 +109,13 @@ void send(const char* fileName)
 		/* TODO: Send a message to the receiver telling him that the data is ready 
  		 * (message of type SENDER_DATA_TYPE) 
  		 */
+		msgsnd(msqid, &sndMsg, size, 0);
+		
 		
 		/* TODO: Wait until the receiver sends us a message of type RECV_DONE_TYPE telling us 
  		 * that he finished saving the memory chunk. 
  		 */
+		msgrcv (msqid, &rcvMsg, size, 0);
 	}
 	
 
@@ -123,6 +129,7 @@ void send(const char* fileName)
 	fclose(fp);
 	
 }
+
 
 
 int main(int argc, char** argv)
