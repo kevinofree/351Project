@@ -61,6 +61,9 @@ void init(int& shmid, int& msqid, void*& sharedMemPtr)
 void cleanUp(const int& shmid, const int& msqid, void* sharedMemPtr)
 {
 	/* TODO: Detach from shared memory */
+	shmdt(sharedMemPtr);//Detatch from shared memory
+	//shmctl(shmid, IPC_RMID, NULL);//Destroy the shared memory location
+	//msgctl(msqid, IPC_RMID, NULL);//Destory the message que
 }
 
 /**
