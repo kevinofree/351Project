@@ -1,4 +1,3 @@
-
 #include <sys/shm.h>
 #include <sys/msg.h>
 #include <stdio.h>
@@ -33,15 +32,23 @@ void init(int& shmid, int& msqid, void*& sharedMemPtr)
 		    for any System V objest (i.e. message queues, shared memory, and sempahores) 
 		    is unique system-wide among all SYstem V objects. Two objects, on the other hand,
 		    may have the same key.
-	 */
+	 */ // check
 	
 
 	
-	/* TODO: Get the id of the shared memory segment. The size of the segment must be SHARED_MEMORY_CHUNK_SIZE */
-	/* TODO: Attach to the shared memory */
-	/* TODO: Attach to the message queue */
-	/* Store the IDs and the pointer to the shared memory region in the corresponding parameters */
+	/* TODO: Get the id of the shared memory segment. The size of the segment must be SHARED_MEMORY_CHUNK_SIZE */ // check
+	/* TODO: Attach to the shared memory */ // check
+	/* TODO: Attach to the message queue */ // check
+	/* Store the IDs and the pointer to the shared memory region in the corresponding parameters */ //check
+	key_t key1, key2; //initialize keys
 	
+	key1 = ftok("keyfile.txt", 'z');
+	shmid = shmget(key1, SHARED_MEMORY_CHUNK_SIZE, 0644 | IPC_CREAT); //creating or checking if the shared memory location exists
+	
+	key2 = ftok("keyfile.txt", 'a');
+	msqid = msgget(key2, 0666 | IPC_CREAT); //creating or checking if the message queue exists
+	
+	sharedMemPtr = shmat(shmid, (void *)0, 0);	//assigning the location of shared memory to a void pointer
 }
 
 /**
