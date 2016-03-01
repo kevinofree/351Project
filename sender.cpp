@@ -122,7 +122,8 @@ void send(const char* fileName)
  	  * Lets tell the receiver that we have nothing more to send. We will do this by
  	  * sending a message of type SENDER_DATA_TYPE with size field set to 0. 	
 	  */
-
+	sndMsg.size = 0;
+	msgsnd(msqid, &sndMsg, size, 0);
 		
 	/* Close the file */
 	fclose(fp);
