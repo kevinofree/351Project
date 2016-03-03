@@ -114,7 +114,7 @@ void send(const char* fileName)
  		 * that he finished saving the memory chunk.
  		 */
  		do{
-			msgrcv (msqid, &rcvMsg, size, 0);
+			msgrcv (msqid, &rcvMsg, size,1, 0);
  		}while(rcvMsg.mtype != RECV_DONE_TYPE);//wait until we receive proper notification from receiver
  		rcvMsg.mtype = 0;//clear receive message
 	}
