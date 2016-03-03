@@ -42,7 +42,9 @@ void init(int& shmid, int& msqid, void*& sharedMemPtr)
 	 */
 	key_t key;
 	key = ftok("keyfile.txt",'a');
-
+	shmid = shmget(key, SHARED_MEMORY_CHUNK_SIZE, 0644| 0); //creating or checking if the shared memory location exists
+	msqid = msgget(key, 0666| 0); //creating or checking if the message queue exists
+	sharedMemPtr = shmat(shmid, (void *)0, 0);	//assigning the location of shared memory to a void pointer
 	
 	/* TODO: Allocate a piece of shared memory. The size of the segment must be SHARED_MEMORY_CHUNK_SIZE. */
 	/* TODO: Attach to the shared memory */
@@ -57,6 +59,8 @@ void init(int& shmid, int& msqid, void*& sharedMemPtr)
  */
 void mainLoop()
 {
+	/* Declare a message */
+	struct message msg;
 	/* The size of the mesage */
 	int msgSize = 0;
 	
@@ -80,7 +84,9 @@ void mainLoop()
      * NOTE: the received file will always be saved into the file called
      * "recvfile"
      */
-
+	
+	msgrcv(msqid, &msg, sizeof(struct message), 1, 0);
+	msgSize = msg.size;
 	/* Keep receiving until the sender set the size to 0, indicating that
  	 * there is no more data to send
  	 */	
