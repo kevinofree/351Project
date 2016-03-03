@@ -82,7 +82,7 @@ void send(const char* fileName)
 	
 	/* A buffer to store message received from the receiver. */
 	message rcvMsg;
-	rcvMsg.mtype = RECV_DONE_TYPE;//not sure if needed
+	//rcvMsg.mtype = RECV_DONE_TYPE;//not sure if needed
 	
 	/* Was the file open? */
 	if(!fp)
@@ -114,11 +114,14 @@ void send(const char* fileName)
 		/* TODO: Wait until the receiver sends us a message of type RECV_DONE_TYPE telling us 
  		 * that he finished saving the memory chunk. 
  		 */
-		msgrcv (msqid, &rcvMsg, size, 0);
+ 		do{
+			msgrcv (msqid, &rcvMsg, size, 0);
+ 		}while(rcvMsg.mtype != RECV_DONE_TYPE);//wait until we receive proper notification from receiver
+ 		rcvMsg.mtype = 0;//clear receive message
 	}
 	
 
-	/** TODO: once we are out of the above loop, we have finished sending the file.
+	/* TODO: once we are out of the above loop, we have finished sending the file.
  	  * Lets tell the receiver that we have nothing more to send. We will do this by
  	  * sending a message of type SENDER_DATA_TYPE with size field set to 0. 	
 	  */
