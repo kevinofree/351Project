@@ -18,7 +18,8 @@ void *sharedMemPtr;
 
 /* The name of the received file */
 const char recvFileName[] = "recvfile";
-
+void ctrlCSignal(int);
+void cleanUp(const int&, const int&, void*);
 
 /**
  * Sets up the shared memory segment and message queue
@@ -109,7 +110,7 @@ void mainLoop()
  			 */
 				msg.mtype = RECV_DONE_TYPE;
 				msg.size = 0;
-				msgsnd(msqid, &msg, sizeof(struct message)-sizeof(long));
+				msgsnd(msqid, &msg, sizeof(struct message)-sizeof(long),0);
 			}
 		/* We are done */
 			else
