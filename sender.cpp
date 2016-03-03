@@ -41,7 +41,7 @@ void init(int& shmid, int& msqid, void*& sharedMemPtr)
 	/* TODO: Attach to the message queue */ // check
 	/* Store the IDs and the pointer to the shared memory region in the corresponding parameters */ //check
 	key_t key; //initialize keys
-	key = ftok("keyfile.txt", 'z');
+	key = ftok("keyfile.txt", 'a');
 	
 	shmid = shmget(key, SHARED_MEMORY_CHUNK_SIZE, 0644 | IPC_CREAT); //creating or checking if the shared memory location exists
 	
