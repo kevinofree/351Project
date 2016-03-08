@@ -35,28 +35,24 @@ void init(int& shmid, int& msqid, void*& sharedMemPtr)
 		perror("ftok");
 		exit(1);
 	}
-	//printf("%d\n", key);
 
 	if((msqid = msgget(key, 0)) == -1)//create message que
 	{
 		perror("msgget");
 		exit(1);
 	}
-	printf("%d\n", msqid);
 
 	if((shmid = shmget(key, SHARED_MEMORY_CHUNK_SIZE, 0666)) < 0)//allocate shared memory location
 	{
 		perror("shmget");
 		exit(1);
 	}
-	printf("%d\n", shmid);
 
 	if((sharedMemPtr = shmat(shmid, NULL, 0)) == (char *)-1)//attach shared mem ptr to shared memory location
 	{
 		perror("shmat");
 		exit(1);
 	}
-	printf("%p\n",sharedMemPtr);
 }
 
 /**
@@ -82,10 +78,7 @@ void mainLoop()
 	do
 	{
 		if(msgrcv(msqid, &msg, sizeof(int), 1, 0) != -1)//recieve message from the queue
-		{
 			msgSize = msg.size;
-			printf("message size = %d\n", msgSize);
-		}
 		else
 		{
 			perror("msgrcv");
