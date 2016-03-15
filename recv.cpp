@@ -11,7 +11,7 @@
 #define SHARED_MEMORY_CHUNK_SIZE 1000
 
 /* The ids for the shared memory segment and the message queue */
-int shmid, msqid;
+int shmid, sendPID;
 
 /* The pointer to the shared memory */
 void *sharedMemPtr;
@@ -27,18 +27,12 @@ const char recvFileName[] = "recvfile";
  * @param sharedMemPtr - the pointer to the shared memory
  */
 
-void init(int& shmid, int& msqid, void*& sharedMemPtr)
+void init(int& shmid, void*& sharedMemPtr)
 {
 	key_t key;
 	if((key = ftok("keyfile.txt",'a')) == -1)//Use ftok("keyfile.txt", 'a') in order to generate the key.
 	{
 		perror("ftok");
-		exit(1);
-	}
-
-	if((msqid = msgget(key, 0)) == -1)//create message que
-	{
-		perror("msgget");
 		exit(1);
 	}
 
@@ -55,15 +49,32 @@ void init(int& shmid, int& msqid, void*& sharedMemPtr)
 	}
 }
 
+void retrievePID(FILE* fp)
+{
+	sendPID = *((int*)sharedMemPtr);
+	*((int*)(sharedMemPtr)) = getpid();
+	kill (sendPID, SIGUSR1);
+	signal (SIGUSR1, retrieveData(fp));
+}
+
+void retrieveData(FILE* fp)
+{
+	int msgSize = *((int*)sharedMemPtr);
+	if(msgSize > 0){
+		if(fwrite(sharedMemPtr, sizeof(char), msgSize, fp) < 0)
+				perror("fwrite");
+	}
+	else{
+		fclose(fp);
+		cleanUp();
+	}
+	
+}
 /**
  * The main loop
  */
 void mainLoop()
 {
-	message msg;
-	/* The size of the mesage */
-	int msgSize = 0;
-	/* Open the file for writing */
 	FILE* fp = fopen(recvFileName, "w");
 	/* Error checks */
 	if(!fp)
@@ -71,34 +82,10 @@ void mainLoop()
 		perror("fopen");
 		exit(-1);
 	}
-
-	/* Keep receiving until the sender set the size to 0, indicating that
- 	 * there is no more data to send
- 	 */
-	do
-	{
-		if(msgrcv(msqid, &msg, sizeof(int), 1, 0) != -1)//recieve message from the queue
-			msgSize = msg.size;
-		else
-		{
-			perror("msgrcv");
-			exit(-1);
-		}
-		/* If the sender is not telling us that we are done, then get to work */
-		if(msgSize != 0)
-		{
-			/* Save the shared memory to file */
-			if(fwrite(sharedMemPtr, sizeof(char), msgSize, fp) < 0)
-				perror("fwrite");
-			msg.mtype = 2;
-			msg.size = 0;
-			msgsnd(msqid, &msg, sizeof(int), 0);//tell the sender we are ready for another message
-		}
-		/* We are done */
-		else
-			fclose(fp);/* Close the file */
-
-	}while(msgSize != 0);
+	
+	signal(SIGUSR1, retrievePID(fp));
+	
+	while(true);
 }
 /**
  * Perfoms the cleanup functions
@@ -107,14 +94,13 @@ void mainLoop()
  * @param msqid - the id of the message queue
  */
 
-void cleanUp(const int& shmid, const int& msqid, void* sharedMemPtr)
+void cleanUp(const int& shmid, void* sharedMemPtr)
 {
 	/* Detach from shared memory */
 	shmdt(sharedMemPtr);
 	/* Deallocate the shared memory chunk */
 	shmctl(shmid, IPC_RMID, NULL);
-	/* Deallocate the message queue */
-	msgctl(msqid, IPC_RMID, NULL);
+	exit();
 }
 
 /**
