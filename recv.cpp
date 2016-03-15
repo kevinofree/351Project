@@ -51,20 +51,25 @@ void init(int& shmid, void*& sharedMemPtr)
 
 void retrievePID(FILE* fp)
 {
+	/*Retrieve sender's PID*/
 	sendPID = *((int*)sharedMemPtr);
+	/*Place Receiver PID into shared memory location*/
 	*((int*)(sharedMemPtr)) = getpid();
+	/*Send SIGUSR1 signal to sender*/
 	kill (sendPID, SIGUSR1);
+	/*Wait for SIGUSR1 then retreive data */
 	signal (SIGUSR1, retrieveData(fp));
 }
 
 void retrieveData(FILE* fp)
 {
+	/*Retrieve the message size from shared memory location*/
 	int msgSize = *((int*)sharedMemPtr);
-	if(msgSize > 0){
+	if(msgSize > 0){//write message to file
 		if(fwrite(sharedMemPtr, sizeof(char), msgSize, fp) < 0)
 				perror("fwrite");
 	}
-	else{
+	else{// close file and call cleanup procedure
 		fclose(fp);
 		cleanUp();
 	}
@@ -82,7 +87,7 @@ void mainLoop()
 		perror("fopen");
 		exit(-1);
 	}
-	
+	/*Wait for SIGUSR1 then retreive PID */
 	signal(SIGUSR1, retrievePID(fp));
 	
 	while(true);
