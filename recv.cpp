@@ -49,37 +49,19 @@ void init(int& shmid, void*& sharedMemPtr)
 	}
 }
 
-void retrievePID(FILE* fp)
+void retrievePID()
 {
 	/*Retrieve sender's PID*/
 	sendPID = *((int*)sharedMemPtr);
-	/*Place Receiver PID into shared memory location*/
-	*((int*)(sharedMemPtr)) = getpid();
 	/*Send SIGUSR1 signal to sender*/
 	kill (sendPID, SIGUSR1);
 	/*Wait for SIGUSR1 then retreive data */
-	signal (SIGUSR1, retrieveData(fp));
+	signal (SIGUSR1, retrieveData());
 }
 
-void retrieveData(FILE* fp)
+void retrieveData()
 {
-	/*Retrieve the message size from shared memory location*/
-	int msgSize = *((int*)sharedMemPtr);
-	if(msgSize > 0){//write message to file
-		if(fwrite(sharedMemPtr, sizeof(char), msgSize, fp) < 0)
-				perror("fwrite");
-	}
-	else{// close file and call cleanup procedure
-		fclose(fp);
-		cleanUp();
-	}
-	
-}
-/**
- * The main loop
- */
-void mainLoop()
-{
+	/* Open file for writing */
 	FILE* fp = fopen(recvFileName, "w");
 	/* Error checks */
 	if(!fp)
@@ -87,8 +69,42 @@ void mainLoop()
 		perror("fopen");
 		exit(-1);
 	}
+	/*Begin listning for a wakeup signal*/
+	signal(SIGURS1,SIGCONT);
+	
+	do
+	{
+		/*Retrieve the message size from shared memory location*/
+		int msgSize = *((int*)sharedMemPtr);
+		/*write message to file if the size is greater than 0*/
+		if(msgSize > 0)
+		{
+			if(fwrite(sharedMemPtr+4, sizeof(char), msgSize, fp) < 0){
+					perror("fwrite");
+					exit(-1);
+			}
+		}
+		/*If message size is less than 0 close file and cleanup*/
+		else
+		{
+			fclose(fp);
+			cleanUp();
+		}
+		/*Send signal to show i have read data*/
+		kill (sendPID, SIGUSR1);
+		/*Wait for wakeup signal telling me there is more data to read*/
+		pause();
+	}while(true);
+}
+/**
+ * The main loop
+ */
+void mainLoop()
+{
+	/*Place Receiver PID into shared memory location*/
+	*((int*)(sharedMemPtr)) = getpid();
 	/*Wait for SIGUSR1 then retreive PID */
-	signal(SIGUSR1, retrievePID(fp));
+	signal(SIGUSR1, retrievePID());
 	
 	while(true);
 }
@@ -96,7 +112,6 @@ void mainLoop()
  * Perfoms the cleanup functions
  * @param sharedMemPtr - the pointer to the shared memory
  * @param shmid - the id of the shared memory segment
- * @param msqid - the id of the message queue
  */
 
 void cleanUp(const int& shmid, void* sharedMemPtr)
@@ -116,7 +131,7 @@ void cleanUp(const int& shmid, void* sharedMemPtr)
 void ctrlCSignal(int signal)
 {
 	/* Free system V resources */
-	cleanUp(shmid, msqid, sharedMemPtr);
+	cleanUp(shmid, sharedMemPtr);
 }
 
 int main(int argc, char** argv)
@@ -124,10 +139,10 @@ int main(int argc, char** argv)
 	/* set up ctrlC signal listener */
 	signal(SIGINT,ctrlCSignal);
 	/* Initialize */
-	init(shmid, msqid, sharedMemPtr);
+	init(shmid, sharedMemPtr);
 	/* Go to the main loop */
 	mainLoop();
 	/* Detach from shared memory segment, and deallocate shared memory and message queue (i.e. call cleanup) */
-	cleanUp(shmid, msqid, sharedMemPtr);
+	cleanUp(shmid, sharedMemPtr);
 	return 0;
 }
